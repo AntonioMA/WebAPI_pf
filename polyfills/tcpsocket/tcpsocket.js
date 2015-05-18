@@ -95,6 +95,29 @@
   // Wishful thinking at the moment...
   const TCPSOCKET_SERVICE = 'https://tcpsocket.gaiamobile.org';
 
+  function VoidRequest(reqId, extraData) {
+    this.serialize = function() {
+      return {
+        id: reqId,
+        data: extraData,
+        processAnswer: answer => debug("Got an invalid answer for: " + reqId)
+      };
+    };
+  }
+
+  function HandlerSetRequest(reqId, extraData) {
+    this.serialize = function() {
+      return {
+        id: reqId,
+        data: {
+          operation: extraData.handler,
+          socketId: extraData.socketId
+        },
+        processAnswer: answer => extraData.cb(answer.data.event)
+      };
+    };
+  }
+
   // TCPSocket polyfill..
   function FakeTCPSocket(reqId, extraData) {
     // extraData will hold host, port, options
@@ -170,17 +193,9 @@
         },
         set: function(cb) {
           _handlers[handler] = cb;
-          _sendAPICall({
-            serialize: function() {
-              return {
-                id: ++_currentRequestId,
-		            data: {
-		              operation: handler
-                },
-                processAnswer: answer => cb(answer.event)
-              };
-            }
-          });
+          navConnPromise.queueDependentRequest({handler: handler, cb: cb},
+                                               HandlerSetRequest,
+                                               _sock, 'socketId');
         }
       })
     );
@@ -219,33 +234,33 @@
     var _ops = {
       upgradeToSecure: {
         numParams: 0,
-        returnValue: Void
+        returnValue: VoidRequest
       },
       suspend: {
         numParams: 0,
-        returnValue: Void
+        returnValue: VoidRequest
       },
       resume: {
         numParams: 0,
-        returnValue: Void
+        returnValue: VoidRequest
       },
       close: {
         numParams: 0,
-        returnValue: Void
-      },
-      send: {
-        numParams: 3,
-        returnValue: Void
-      },
+        returnValue: VoidRequest
+      }
     };
 
-
-    
-
-//  void upgradeToSecure();
-//  void suspend();
-//  void resume();
-//  void close();
+    for (var _op in _ops) {
+      this[_op] =
+        navConnPromise.methodCall.bind(navConnPromise,
+                                       {
+                                         methodName: _op,
+                                         numParams: _ops[_op].numParams,
+                                         returnValue: _ops[_op].retValue,
+                                         promise: _sock,
+                                         field: 'socketId'
+                                       });
+    }
 
     //  boolean send(in jsval data, [optional] in unsigned long byteOffset,
     //              [optional] in unsigned long byteLength);
@@ -255,27 +270,18 @@
       if (this.readyState !== 'open') {
         return false;
       }
-
-      
-
-      var commandObject = {
-        serialize: function() {
-          return {
-            id: ++_currentRequestId,
-            data: {
-              operation: 'send',
-              params: [dataToSend, byteOffset, byteLength]
-            },
-            processAnswer: () =>
-              debug("Got an answer for send! We really shouldn't")
-          };
-        }
-      };
-
-      _sendAPICall(commandObject);
+      navConnPromise.methodCall(
+        {
+          methodName: 'send',
+          numParams: 3,
+          returnValue: VoidRequest,
+          promise: _sock,
+          field: 'socketId'
+        },
+        dataToSend, byteOffset, byteLength
+      );
       return true;
     };
-
   }
 
   // For the time being, only client sockets!
@@ -283,9 +289,11 @@
   // constructor worked)
   window.navigator.mozTCPSocket = {
     open: function(host, port, options) {
-      var newSock = new FakeTCPSocket(host, port, options);
-      navConnPromise.then(navConnHelper => navConnHelper.sendObject(newSock));
-      return newSock;
+      return navConnPromise.createAndQueueRequest({
+        host: host,
+        port: port,
+        options: options
+      }, FakeTCPSocket);
     }
   };
 

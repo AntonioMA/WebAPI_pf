@@ -75,24 +75,40 @@
     });
 
     retValue.createAndQueueRequest = function(data, constructor) {
-      var request = new constructor(++_currentRequestId, data);
-      this.then(navConn => navConn.sendObject(request));
-      return request;
-    }.bind(retValue);
+      return this.queueDependentRequest(data, constructor);
+    };
 
-    retValue.methodCall = function(methodName, numParams, returnValue) {
+    // Sent a request that depends on another promise (for things that
+    // require a previous object, like setttings locks or sockets).
+    // Basically, waits till 'promise' is fulfilled, set the result as the
+    // 'field' field of 'data', and calls sendObject with that object.
+    retValue.queueDependentRequest = function(data, constructor, promise, field) {
+      Promise.all([this, promise]).then(([navConn, promValue]) => {
+        if (field && promValue) {
+          data[field] = promValue;
+        }
+        var request = new constructor(++_currentRequestId, data);
+        navConn.sendObject(request);
+        return request;
+      });
+    };
+
+    retValue.methodCall = function(options) {
+      var methodName = options.methodName;
+      var numParams = options.numParams;
+      var returnValue = options.returnValue;
       var params = [];
       // It's not recommended calling splice on arguments apparently.
       // Also, first three arguments are explicit
-      for(var i = 3; i < numParams + 3; i++) {
+      for(var i = 1; i < numParams + 1; i++) {
         params.push(arguments[i]);
       }
       debug('Called ' + methodName + ' with ' + JSON.stringify(params));
-      return this.createAndQueueRequest({
+      return this.queueDependentRequest({
         operation: methodName,
         params: params
-      }, returnValue);
-    }.bind(retValue);
+      }, returnValue, options.promise, options.field);
+    };
 
     return retValue;
 
@@ -234,21 +250,6 @@
     };
   }
 
-  function HandlerSetRequest(reqId, extraData) {
-    return {
-      serialize: function() {
-        return {
-          id: reqId,
-          data: {
-            operation: extraData.handler
-          },
-          processAnswer: answer => extraData.cb(answer.data.event)
-        };
-      }
-    };
-  }
-
-  window.HandlerSetRequest = HandlerSetRequest;
   window.NavConnectHelper = NavConnectHelper;
   window.FakeDOMRequest = FakeDOMRequest;
   window.FakeDOMCursorRequest = FakeDOMCursorRequest;

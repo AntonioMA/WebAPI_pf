@@ -67,27 +67,19 @@
         _tcpSocket.open(...funcData.params);
       // And let's assume everything goes well
       answerWith(channel, request, 'socketId', _internalSockId);
-    },
-
-    send: function(channel, request) {
-      var funcData = request.remoteData.data;
-      _sockets[funcData.socketId].send(...funcData.params);
-      // We're not going answer anything here
-    },
-
-    resume: function(channel, request) {
-    },
-
-    close: function(channel, request) {
-    },
-
-    upgradeToSecure: function(channel, request) {
     }
-
   };
 
   ['open', 'drain', 'data', 'error', 'close'].forEach(event => {
     _operations['on' + event] = setHandler.bind(undefined, event);
+  });
+
+  ['send', 'resume', 'close', 'upgradeToSecure'].forEach(op => {
+    _operations[op] = function(channel, request) {
+      var funcData = request.remoteData.data;
+      _sockets[funcData.socketId][op](...funcData.params);
+      // We're not going answer anything here
+    };
   });
 
   // At this point I could change this (again) and move this to the common part
