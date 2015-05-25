@@ -87,20 +87,21 @@
     console.log('*-*-*- TCPSocket PF: ' + text);
   }
 
-  if (window.navigator.mozTCPSocket && window.navigator.mozTCPSocket.open) {
+  if (false && window.navigator.mozTCPSocket &&
+      window.navigator.mozTCPSocket.open) {
     // Hmm it's already available... so let's just use it and be done with it
     return;
   }
 
   // Wishful thinking at the moment...
-  const TCPSOCKET_SERVICE = 'https://tcpsocket.gaiamobile.org';
+  const TCPSOCKET_SERVICE = 'https://tcpsocketservice.gaiamobile.org';
 
   function VoidRequest(reqId, extraData) {
     this.serialize = function() {
       return {
         id: reqId,
         data: extraData,
-        processAnswer: answer => debug("Got an invalid answer for: " + reqId)
+        processAnswer: answer => debug('Got an invalid answer for: ' + reqId)
       };
     };
   }
@@ -113,7 +114,7 @@
           operation: extraData.handler,
           socketId: extraData.socketId
         },
-        processAnswer: answer => extraData.cb(answer.data.event)
+        processAnswer: answer => extraData.cb(answer.event)
       };
     };
   }
@@ -128,6 +129,7 @@
     if (!extraData.port) {
       throw "INVALID_PORT";
     }
+
     var host = extraData.host;
     var port = extraData.port;
     var options = extraData.options;
@@ -201,7 +203,6 @@
     );
 
     this.serialize = function() {
-      var self= this;
       return {
         id: reqId,
         data: {
@@ -214,10 +215,10 @@
           if (_sockId === null) {
             if (!answer.error) {
               _resolve(answer.socketId);
-              self.readyState = 'open';
+              _internalProps.readyState = 'open';
             } else {
               var permaFail = 'Error creating socket: ' + answer.error;
-              this.readyState = 'closed';
+              _internalProps.readyState = 'closed';
               _reject(permaFail);
             }
             return;
@@ -262,12 +263,13 @@
                                        });
     }
 
-    //  boolean send(in jsval data, [optional] in unsigned long byteOffset,
+    // boolean send(in jsval data, [optional] in unsigned long byteOffset,
     //              [optional] in unsigned long byteLength);
     // Synchronous API agh!
     this.send = function(dataToSend, byteOffset, byteLength) {
       // Hmm... can uint8 be sent?
       if (this.readyState !== 'open') {
+        debug('I\'m not ready');
         return false;
       }
       navConnPromise.methodCall(

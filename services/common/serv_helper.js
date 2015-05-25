@@ -55,9 +55,9 @@
           dest[i] = cloneObject(source[i]);
         }
       } else if (typeof obj[key] === 'object') {
-        cloned[key] = recursive && cloneObject(obj[key]) || obj[key];
+        cloned[key] = !recursive && cloneObject(obj[key]) || obj[key];
       } else if (typeof obj[key] !== 'function' || obj[key] === null) {
-          cloned[key] = obj[key];
+        cloned[key] = obj[key];
       }
     }
     return cloned;

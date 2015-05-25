@@ -17,7 +17,7 @@
     }
   },
   "permissions": {
-    "tcpsocket":{}
+    "tcp-socket":{}
   },
   "installs_allowed_from": [
     "*"

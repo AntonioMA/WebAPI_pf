@@ -82,15 +82,16 @@
     // require a previous object, like setttings locks or sockets).
     // Basically, waits till 'promise' is fulfilled, set the result as the
     // 'field' field of 'data', and calls sendObject with that object.
-    retValue.queueDependentRequest = function(data, constructor, promise, field) {
+    retValue.queueDependentRequest = function(data, constructor, promise,
+                                              field) {
+      var request = new constructor(++_currentRequestId, data);
       Promise.all([this, promise]).then(([navConn, promValue]) => {
         if (field && promValue) {
           data[field] = promValue;
         }
-        var request = new constructor(++_currentRequestId, data);
         navConn.sendObject(request);
-        return request;
       });
+      return request;
     };
 
     retValue.methodCall = function(options) {
@@ -103,7 +104,6 @@
       for(var i = 1; i < numParams + 1; i++) {
         params.push(arguments[i]);
       }
-      debug('Called ' + methodName + ' with ' + JSON.stringify(params));
       return this.queueDependentRequest({
         operation: methodName,
         params: params
@@ -111,7 +111,6 @@
     };
 
     return retValue;
-
   }
 
   // This should probably be on a common part...
