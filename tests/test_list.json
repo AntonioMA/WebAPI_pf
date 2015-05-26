@@ -3,6 +3,7 @@
   "tcpsocket": {"origin": "https://servtcpsocket.github.io"},
   "fm": {"origin": "https://servfm.github.io"},
   "sms": {"origin": "https://servsms.github.io"},
-  "contacts": {"origin": "https://servcontacts.github.io"}
+  "contacts": {"origin": "https://servcontacts.github.io"},
+  "systemxhr": {"origin": "https://servsystemxhr.github.io"}
 }
 
