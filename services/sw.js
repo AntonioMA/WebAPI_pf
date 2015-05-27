@@ -43,24 +43,28 @@ this.channelToMT.then(channel => {
   };
 });
 
-// This has a *HUGE* problem currently! It's not safe to accept more than one connection!
-// mostly because we're multiplexing the channel to the MT without really multiplexing it
+// This has a *HUGE* problem currently! It's not safe to accept more than one
+// connection! mostly because we're multiplexing the channel to the MT without
+// really multiplexing it
 this.onconnect = function(msg) {
   debug('SW onconnect: We should have a port here on msg.source. ' +
         (msg.source.postMessage ? 'yes!' : 'no :('));
   // msg.source should have the endpoint to send and receive messages,
   // so we can do:
 
-  // TO-DO: Not everybody should have access!!!
-  msg.acceptConnection(true);
+  debug('Connection from ' + msg.targetURL +
+        ((!!this.acl[msg.targetURL]) ?
+         ' accepted' :
+         ' forbidded'));
 
+  msg.acceptConnection(!!this.acl[msg.targetURL]);
+
+  var myTargetURL = msg.targetURL;
   var remotePort = msg.source;
   var myPortId = this._portId++;
   this._ports[myPortId] = remotePort;
 
   remotePort.onmessage = aMsg => {
-
-    // TO-DO: We should implement access control here also!
     debug('SW msg received:' + JSON.stringify(aMsg.data));
     var requestId = aMsg.data.id;
     if (requestId) {
@@ -72,7 +76,9 @@ this.onconnect = function(msg) {
       // us a MessageChannel to talk to it
       this.channelToMT.then(channel => {
         // TO-DO: Multiplex the channel!
-        channel.postMessage({remotePortId: myPortId, remoteData: aMsg.data});
+        channel.postMessage({targetURL: myTargetURL,
+                             remotePortId: myPortId,
+                             remoteData: aMsg.data});
       });
     } else {
       // Hmm...
@@ -94,6 +100,7 @@ this.messageListener = evt => {
     debug('SW msg is internal, do not process');
     return;
   }
+  this.acl = evt.data.acl;
   // END ADDED FOR POLYFILL
 
   // Your code here

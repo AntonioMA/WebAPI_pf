@@ -1,0 +1,27 @@
+{
+  "https://mcjimenez.github.io/WebAPI_pf/tests/index.html": {
+    "createLock": [],
+    "removeObserver": [],
+    "set": [
+      "ril.data.enabled",
+      "geolocation.enabled",
+      "locale.hour12",
+      "wifi.enabled"],
+    "get": [
+      "locale.hour12",
+      "wifi.debugging.enabled",
+      "lockscreen.enabled",
+      "homegesture.enabled",
+      "ril.data.roaming_enabled",
+      "ril.data.enabled"
+    ],
+    "addObserver": [
+      "locale.hour12",
+      "wifi.debugging.enabled",
+      "lockscreen.enabled",
+      "homegesture.enabled",
+      "ril.data.roaming_enabled",
+      "ril.data.enabled"
+    ]
+  }
+}

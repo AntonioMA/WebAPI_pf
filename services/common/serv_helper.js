@@ -7,9 +7,43 @@
 
   // This is a very basic sample app that uses a SW and acts as a server for
   // navigator.connect. I'm going to mark with a comment where the app MUST
-  // add some extra code to use the navigator.connect SHIM
+  // add some extra code to use the navigator.connect POLYFILL
   // So if you just want to know that, search for:
-  // ADDED FOR SHIM
+  // ADDED FOR POLYFILL
+
+  var ACCESS_CTRL_FILE = 'acl.json';
+
+  function getACL(aUrl) {
+    function aclPathFromURL(aUrl) {
+      if (!aUrl) {
+        debug('Trying to recover acl file from no url');
+        return {};
+      }
+      // Error ctrl?
+      var url = new URL(aUrl);
+      var pathname = url.pathname;
+      return pathname.substring(0, pathname.lastIndexOf('/') + 1);
+    }
+
+    return new Promise((resolve, reject) => {
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', aclPathFromURL(aUrl) + ACCESS_CTRL_FILE, true);
+      xhr.responseType = 'json';
+
+      xhr.onerror = function(error) {
+        reject(error);
+      };
+      xhr.onload = function() {
+        if (xhr.response !== null) {
+          resolve(xhr.response);
+        } else {
+          reject(new Error('No valid JSON object was found (' +
+			    xhr.status + ' ' + xhr.statusText + ')'));
+        }
+      };
+      xhr.send();
+    });
+  };
 
   var register = function(evt) {
     debug('APP executing register...');
@@ -67,12 +101,15 @@
     window.ServiceHelper = {
       register: function(processSWRequest) {
         register();
-        navigator.serviceWorker.ready.then(sw => {
-          // Let's pass the SW some way to talk to us...
-          var mc = new MessageChannel();
-          mc.port1.onmessage = processSWRequest.bind(this, mc.port1);
-          sw.active && sw.active.postMessage({}, [mc.port2]);
-        });
+        var aclPromise = getACL(document.location.href);
+        Promise.all([aclPromise, navigator.serviceWorker.ready]).then(
+          ([acl, sw]) => {
+            // Let's pass the SW some way to talk to us...
+            var mc = new MessageChannel();
+            mc.port1.onmessage = processSWRequest.bind(this, acl, mc.port1);
+            sw.active && sw.active.postMessage({'acl': acl}, [mc.port2]);
+          }
+        ).catch(error => debug('Error during register: ' + error));
       },
       unregister: unregister,
       cloneObject: cloneObject
