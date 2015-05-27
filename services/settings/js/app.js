@@ -12,9 +12,48 @@
   var _locks = {};
   var _observers = {};
 
-  var processSWRequest = function(channel, evt) {
+  /**
+   * The operation is forbidden if:
+   *   - The ACL file does not have defined the operation
+   *   - The operation array (operation value) has values and does not have the
+   *     settings requested
+   * For allowing all requests for a operation set a empty array value
+   */
+  function isForbidden(aAcl, aTargetURL, aData) {
+    if (!aAcl || !aTargetURL || !aData) {
+      return true;
+    }
 
-    var _settings = navigator.mozSettings;
+    var operation = aData.operation;
+    var constraint = aAcl[aTargetURL][operation];
+    if (!constraint) {
+      return true;
+    }
+    if (constraint.length === 0) {
+      return false;
+    } else {
+      var settings = [];
+      switch(operation) {
+        case 'addObserver':
+          settings = [aData.settingName];
+          break;
+        case 'set':
+          settings = Object.keys(aData.settings);
+          break;
+        case 'get':
+          settings = [aData.settings];
+          break;
+      }
+      var isIn = true;
+      for (var i = 0, li = settings.length;
+           isIn && i < li;
+           isIn = constraint.indexOf(settings[i++]) >= 0);
+      return !isIn;
+    }
+  }
+
+  var processSWRequest = function(acl, channel, evt) {
+
     // We can get:
     // * createLock
     // * addObserver
@@ -23,8 +62,15 @@
     // All the operations have a requestId, and the lock operations also include
     // a lock id.
     var remotePortId = evt.data.remotePortId;
+    var targetURL = evt.data.targetURL;
     var request = evt.data.remoteData;
     var requestOp = request.data;
+
+    if (isForbidden(acl, targetURL, requestOp)) {
+      return;
+    }
+
+    var _settings = navigator.mozSettings;
 
     function observerTemplate(evt) {
       channel.postMessage({
@@ -65,7 +111,6 @@
       });
     }
   };
-
 
   // Testing purpose only!!!!
   window.addEventListener('load', function () {
