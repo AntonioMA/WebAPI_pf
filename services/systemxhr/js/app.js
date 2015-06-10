@@ -11,6 +11,9 @@
   // be sent to the client. Yay us!
   var _XMLHttpRequests = {};
   var _listeners = {};
+  var _lastOpenRequest = null;
+  var _currentOperations = 0;
+  var _clearCurrentOperationsId = null;
 
   function buildDOMRequestAnswer(channel, request) {
     debug('Building call --> ' + JSON.stringify(request));
@@ -140,12 +143,77 @@
     var request = aEvt.data.remoteData;
     var requestOp = request.data.operation;
     var targetURL = aEvt.data.targetURL;
+    var opParams = request.data.params;
+
+    var checkParams = function(expectedParams) {
+      var hasErrors = false;
+      opParams.forEach((param, index) => {
+        var key = _getKeyFromIndex(index, expectedParams);
+        var regExp = new RegExp(constraints.params[key]);
+        forbidden = !regExp.test(param);
+        if (forbidden) {
+          return;
+        }
+      });
+
+      return hasErrors;
+    }
+
+    var resetState = function() {
+      _currentOperations = 0;
+      clearTimeout(_clearCurrentOperationsId);
+    }
+
+    var checkLastRequest = function(maxPetitionsPerSecond) {
+      var timestamp = Date.now();
+      if (!_lastOpenRequest || timestamp - _lastOpenRequest >= 1000 ||
+          _currentOperations < maxPetitionsPerSecond) {
+        _currentOperations++;
+        // Update timestamp
+        _lastOpenRequest = timestamp;
+
+        // Need to update the timeout
+        _clearCurrentOperationsId && clearTimeout(_clearCurrentOperationsId);
+
+        _clearCurrentOperationsId = setTimeout(resetState, 1000);
+
+        return false;
+      }
+
+      debug('checkLastRequest --> Too many petitions');
+      return true;
+    };
+
+    var _getKeyFromIndex = function(index, object) {
+      return Object.keys(object)[index];
+    }
 
     // TODO: Add resource access constraint
     // It should return true if resource access is forbidden,
     // false if it's allowed
     var forbidCall = function(constraints) {
-      return false;
+      var forbidden = false;
+      switch(requestOp) {
+        case 'createXMLHttpRequest':
+        case 'setRequestHeader':
+        case 'overrideMimeType':
+          forbidden = checkParams(constraints.params);
+          break;
+        case 'open':
+          var maxPetitionsPerSecond =
+            constraints.throttle.maxPetitionsPerSecond;
+          forbidden = checkParams(constraints.params) ||
+                      checkLastRequest(maxPetitionsPerSecond);
+          break;
+        case 'set':
+          forbidden = constraints.indexOf(opParams[0]) === -1;
+          break;
+        case 'send':
+          var regExp = new RegExp(constraints.type);
+          forbidden = opParams[0] && !regExp.test(opParams[0].constructor.name);
+          break;
+      }
+      return forbidden;
     };
 
     if (window.ServiceHelper.isForbidden(aAcl, targetURL, requestOp,

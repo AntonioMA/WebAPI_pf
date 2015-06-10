@@ -186,7 +186,7 @@
 
     var properties = [
       'response', 'responseText', 'responseType', 'responseXML',
-      'status', 'statusText', 'readyState',' timeout', 'responseURL'
+      'status', 'statusText', 'readyState','timeout', 'responseURL'
     ];
 
     properties.forEach(property => {
