@@ -1,6 +1,43 @@
 {
-  "allowedEverybody": {
-    "allowedOrigins": [".*"],
-    "rules": {}
+  "Internal Tests": {
+    "allowedOrigins": [
+      "^https://.*\\.telefonica\\.com/WebAPI_pf.*",
+      "^https://.*\\.github\\.io/WebAPI_pf.*"
+    ],
+    "rules": {
+      "disable": [{
+        "throttle": {
+          "maxPetitionsPerSecond": 1
+        }
+      }],
+      "enable": [{
+        "throttle": {
+          "maxPetitionsPerSecond": 1
+        },
+        "params": {
+          "frequency": "^\\d{0,2}(\\.\\d{0,2}){0,1}$"
+        }
+      }],
+      "seekUp": [],
+      "seekDown": [],
+      "cancelSeek": [],
+      "setFrequency": [{
+        "params": {
+          "frequency": "^\\d{0,2}(\\.\\d{0,2}){0,1}$"
+        }
+      }],
+      "get": [
+        "enabled",
+        "antennaAvailable",
+        "frequencyUpperBound",
+        "frequencyLowerBound",
+        "channelWidth",
+        "frequency"
+      ],
+      "onfrequencychange": [],
+      "onenabled": [],
+      "ondisabled": [],
+      "onantennaavailablechange": []
+    }
   }
 }

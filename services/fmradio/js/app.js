@@ -6,6 +6,9 @@
   }
 
   var _mozFMRadio = navigator.mozFMRadio;
+  var _lastOpenRequest = null;
+  var _currentOperations = 0;
+  var _clearCurrentOperationsId = null;
 
   function buildDOMRequestAnswer(operation, channel, request) {
     debug('Building call --> ' + JSON.stringify(request));
@@ -103,6 +106,36 @@
       _operations[evt] = setHandler.bind(undefined, evt);
   });
 
+  var resetState = function() {
+    _currentOperations = 0;
+    clearTimeout(_clearCurrentOperationsId);
+  }
+
+  var checkLastRequest = function(maxPetitionsPerSecond) {
+    var timestamp = Date.now();
+    if (!_lastOpenRequest || timestamp - _lastOpenRequest >= 1000 ||
+        _currentOperations < maxPetitionsPerSecond) {
+      _currentOperations++;
+      // Update timestamp
+      _lastOpenRequest = timestamp;
+
+      // Need to update the timeout
+      _clearCurrentOperationsId && clearTimeout(_clearCurrentOperationsId);
+
+      _clearCurrentOperationsId = setTimeout(resetState, 1000);
+
+      return false;
+    }
+
+    debug('checkLastRequest --> Too many petitions');
+    return true;
+  };
+
+  var checkFrequencyValue = function(frequency, constraint) {
+    var regExp = new RegExp(constraint);
+    return !regExp.test(constraint);
+  };
+
   // Ok, this kinda sucks because most APIs (and settings is one of them) cannot
   // be accessed from outside the main thread. So basically everything has to go
   // down to the SW thread, then back up here for processing, then back down to
@@ -116,12 +149,34 @@
     var request = aEvt.data.remoteData;
     var requestOp = request.data.operation;
     var targetURL = aEvt.data.targetURL;
+    var opParams = request.data.params;
 
     // TODO: Add resource access constraint
     // It should return true if resource access is forbidden,
     // false if it's allowed
     var forbidCall = function(constraints) {
-      return false;
+      var forbidden = false;
+      switch (requestOp) {
+        case 'enable':
+          var maxPetitions = constraints.throttle.maxPetitionsPerSecond;
+          forbidden = checkFrequencyValue(opParams[0],
+                                          constraints.params.frequency) ||
+                      checkLastRequest(maxPetitions);
+          break;
+        case 'disable':
+          var maxPetitions = constraints.throttle.maxPetitionsPerSecond;
+          forbidden = checkLastRequest(maxPetitions);
+          break;
+        case 'get':
+          forbidden = constraints.indexOf(opParams[0]) === -1;
+          break;
+        case 'setFrequency':
+          forbidden = checkFrequencyValue(opParams[0],
+                                          constraints.params.frequency)
+          break;
+      }
+
+      return forbidden;
     };
 
     if (window.ServiceHelper.isForbidden(aAcl, targetURL, requestOp,
