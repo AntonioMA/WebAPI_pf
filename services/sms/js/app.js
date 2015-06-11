@@ -132,6 +132,10 @@ debug('load handler for ' + eventType);
     _operations[evt] = setHandler.bind(undefined, evt);
   });
 
+  var _getKeyFromIndex = function(index, object) {
+    return Object.keys(object)[index];
+  }
+
 
   var processSWRequest = function(aAcl, aChannel, aEvt) {
     debug('processSWRequest --> processing a msg:' +
@@ -140,12 +144,66 @@ debug('load handler for ' + eventType);
     var request = aEvt.data.remoteData;
     var requestOp = request.data.operation;
     var targetURL = aEvt.data.targetURL;
+    var opParams = request.data.params;
 
     // TODO: Add resource access constraint
     // It should return true if resource access is forbidden,
     // false if it's allowed
     var forbidCall = function(constraints) {
-      return false;
+      var forbidden = false;
+      switch(requestOp) {
+        case 'send':
+          opParams.forEach((param, index) => {
+            var key = _getKeyFromIndex(index, constraints.params);
+            var regExp = new RegExp(constraints.params[key]);
+            if (Array.isArray(param)) {
+              param.forEach((elem) => {
+                forbidden = !regExp.test(elem);
+                if (forbidden) {
+                  return;
+                }
+              });
+            } else {
+              forbidden = !regExp.test(param);
+            }
+
+            if (forbidden) {
+              return;
+            }
+          });
+          break;
+        case 'sendMMS':
+          var regExp = new RegExp(constraints.params.receivers);
+          opParams[0].receivers && opParams[0].receivers.forEach(elem => {
+            forbidden = !regExp.test(elem);
+            if (forbidden) {
+              return;
+            }
+          });
+          break;
+        case 'getMessages':
+          var filter = opParams[0];
+          var reverse = opParams[1];
+
+          filter && for (var key in constraints.params.filter) {
+            if (typeof filter[key] !== 'undefined') {
+              var regExp = new RegExp(constraints.params.filter[key]);
+              forbidden = !regExp.test(filter[key]);
+              if (forbidden) {
+                break;
+              }
+            }
+          }
+
+          if (!forbidden) {
+            var regExp = new RegExp(constraints.params.reverse);
+            forbidden = reverse && !regExp(reverse);
+          }
+
+          break;
+      }
+
+      return forbidden;
     };
 
     if (window.ServiceHelper.isForbidden(aAcl, targetURL, requestOp,

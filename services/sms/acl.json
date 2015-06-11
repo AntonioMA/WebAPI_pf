@@ -1,6 +1,43 @@
 {
-  "allowedEverybody": {
-    "allowedOrigins": [".*"],
-    "rules": {}
+  "Internal Tests": {
+    "allowedOrigins": [
+      "^https://.*\\.telefonica\\.com/WebAPI_pf.*",
+      "^https://.*\\.github\\.io/WebAPI_pf.*"
+    ],
+    "rules": {
+      "send": [{
+        "params": {
+          "receivers": "(11822|1004)",
+          "message": ".+"
+        }
+      }],
+      "sendMMS": [{
+        "params": {
+          "receivers": "(11822|1004)"
+        }
+      }],
+      "getThreads": [],
+      "getMessages": [{
+        "params": {
+          "filter": {
+            "delivery": "(sent|received)",
+            "read": true
+          },
+          "reverse": false
+        }
+      }],
+      "getMessage": [],
+      "delete": [],
+      "markMessageRead": [],
+      "retrieveMMS": [],
+      "getSegmentInfoForText": [],
+      "ondeliveryerror": [],
+      "ondeliverysuccess": [],
+      "onreceived": [],
+      "onretrieving": [],
+      "onsent": [],
+      "onsending": [],
+      "onfailed": []
+    }
   }
 }
