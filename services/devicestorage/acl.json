@@ -1,6 +1,33 @@
 {
-  "allowedEverybody": {
-    "allowedOrigins": [".*"],
-    "rules": {}
+  "Internal Tests": {
+    "allowedOrigins": [
+      "^https://.*\\.telefonica\\.com/WebAPI_pf.*",
+      "^https://.*\\.github\\.io/WebAPI_pf.*"
+    ],
+    "rules": {
+      "onchange": [],
+      "enumerateEditable": [],
+      "enumerate": [],
+      "usedSpace": [],
+      "getEditable": [],
+      "get": [],
+      "freeSpace": [],
+      "delete": [],
+      "available": [],
+      "addNamed": [],
+      "add": [],
+      "getDeviceStorage": [{
+        "permissions": {
+          "apps": "readonly",
+          "music": "readonly",
+          "pictures": "readonly",
+          "sdcard": "readonly",
+          "videos": "readonly"
+        }
+      }],
+      "addEventListener": [],
+      "removeEventListener": [],
+      "dispatchEvent": []
+    }
   }
 }

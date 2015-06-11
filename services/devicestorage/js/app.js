@@ -10,6 +10,7 @@
   // down to the SW thread, then back up here for processing, then back down to
   // be sent to the client. Yay us!
   var _deviceStorages = {};
+  var _dsPermission = {};
   var _listeners = {};
 
   function addEventTargetEvent(channel, request) {
@@ -183,11 +184,36 @@
     var requestOp = request.data.operation;
     var targetURL = aEvt.data.targetURL;
 
+    var checkPermissions = function(permissions) {
+      for (var key in permissions) {
+        if (request.data.params[0] === key) {
+          _dsPermission[request.id] = permissions[key];
+          return false;
+        }
+      }
+
+      return true;
+    };
+
     // TODO: Add resource access constraint
     // It should return true if resource access is forbidden,
     // false if it's allowed
     var forbidCall = function(constraints) {
-      return false;
+      var forbidden = false;
+      switch (requestOp) {
+        case 'getDeviceStorage':
+          forbidden = checkPermissions(constraints.permissions);
+          break;
+        case 'getEditable':
+        case 'addNamed':
+        case 'add':
+        case 'enumerateEditable':
+          var deviceStorageId = request.data.deviceStorageId;
+          forbidden = _dsPermission[deviceStorageId] === 'readonly';
+          break;
+      }
+
+      return forbidden;
     };
 
     if (window.ServiceHelper.isForbidden(aAcl, targetURL, requestOp,
