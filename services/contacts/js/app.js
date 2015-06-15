@@ -183,7 +183,9 @@
     // It should return true if resource access is forbidden,
     // false if it's allowed
     var forbidCall = function(constraints) {
-      return false;
+      var regExp = new RegExp(expectedOrigin);
+
+      return !regExp.test(targetURL);
     };
 
     if (window.ServiceHelper.isForbidden(aAcl, targetURL, requestOp,

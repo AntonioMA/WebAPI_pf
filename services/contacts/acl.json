@@ -1,6 +1,36 @@
 {
-  "allowedEverybody": {
-    "allowedOrigins": [".*"],
-    "rules": {}
+  "Internal Tests": {
+    "allowedOrigins": [
+      "^https://.*\\.telefonica\\.com/WebAPI_pf.*",
+      "^https://.*\\.github\\.io/WebAPI_pf.*",
+      "^https://.*\\facebook.*",
+      "^https://.*\\twitter.*"
+    ],
+    "rules": {
+      "getAll": [
+        ".*"
+      ],
+      "save": [
+        ".*(telefonica|github).*"
+      ],
+      "clear": [
+        ".*(telefonica).*"
+      ],
+      "find": [
+        ".*"
+      ],
+      "getCount": [
+        ".*"
+      ],
+      "getRevision": [
+        ".*"
+      ],
+      "remove": [
+        ".*(telefonica).*"
+      ],
+      "oncontactchange": [
+        ".*(telefonica|github).*"
+      ]
+    }
   }
 }
