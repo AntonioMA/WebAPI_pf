@@ -1,0 +1,6 @@
+{
+  "allowedEverybody": {
+    "allowedOrigins": [".*"],
+    "rules": {}
+  }
+}

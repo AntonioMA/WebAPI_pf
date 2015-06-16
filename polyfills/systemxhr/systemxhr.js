@@ -84,13 +84,14 @@
       };
     }
 
-    function OnChangeRequest(reqId, extraData) {
+    function XHROnChangeRequest(reqId, extraData) {
       this.serialize = () => {
         return {
           id: reqId,
           data: extraData,
           processAnswer: answer => {
             if (answer.event) {
+              self._updateXMLHttpRequestObject(answer.event);
               self['_' + extraData.operation](answer.event);
             }
           }
@@ -192,20 +193,56 @@
       Object.defineProperty(this, property, {
         enumerable: true,
         get: function() {
+          if (property === 'response') {
+            self._convertToResponseType();
+          }
           return this['_' + property];
         },
         set: function(value) {
           this['_' + property] = value;
-          navConnHelper.methodCall({
+          if (property !== 'responseType') {
+            navConnHelper.methodCall({
                                     methodName: 'set',
                                     numParams: 2,
                                     returnValue: VoidRequest,
                                     promise: _systemxhr,
                                     field: 'xhrId'
                                   }, property, value);
+          }
         }
       });
     });
+
+    this._convertToResponseType = function() {
+      var type = this._responseType;
+      var value;
+      switch (type) {
+        case 'document':
+          var doctype = document.implementation.createDocumentType('html',
+            '', '');
+          value = document.implementation.createDocument('', 'html', doctype);
+          value.documentElement.innerHTML = this._responseText;
+          break;
+        case 'json':
+          value = JSON.parse(this._responseText);
+          break;
+        case 'blob':
+        case 'moz-blob':
+          value = new Blob(this._responseText);
+          break;
+        case 'arraybuffer':
+        case 'moz-chunked-arraybuffer':
+          value = base64DecToArr(this._responseText).buffer;
+          break;
+        case 'moz-chunked-text':
+        case 'text':
+        case '':
+        default:
+          value = this._responseText;
+          break;
+      }
+      this._response = value;
+    };
 
     Object.defineProperty(this, 'onreadystatechange', {
       get: function() {
@@ -219,7 +256,9 @@
 
     this._updateXMLHttpRequestObject = function(evt) {
       properties.forEach(property => {
-        this['_' + property] = evt.target[property];
+        if (property !== 'responseType') {
+          this['_' + property] = evt.target[property];
+        }
       });
       this['_responseHeaders'] = evt.responseHeaders;
     };
@@ -229,7 +268,7 @@
       navConnHelper.methodCall({
                                  methodName: 'on' + changeType,
                                  numParams: 0,
-                                 returnValue: OnChangeRequest,
+                                 returnValue: XHROnChangeRequest,
                                  promise: _systemxhr,
                                  field: 'xhrId'
                                });

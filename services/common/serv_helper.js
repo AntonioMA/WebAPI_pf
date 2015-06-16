@@ -134,9 +134,10 @@
 
   // Circular objects will cause this to hang
   var cloneObject = function(obj, recursive) {
-    if (typeof obj === 'string') {
+    if (typeof obj !== 'object') {
       return obj;
     }
+
     var cloned = {};
     for (var key in obj) {
       if (Array.isArray(obj[key])) {

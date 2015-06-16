@@ -26,6 +26,10 @@
     // Params for the local operation:
     var opData = request.remoteData.data.params || [];
     var xhrId = request.remoteData.data.xhrId;
+    if (operation === 'open' && opData[2] === null ||
+        typeof opData[2] === 'undefined') {
+        opData[2] = true;
+    }
     _XMLHttpRequests[xhrId][operation](...opData);
   }
 

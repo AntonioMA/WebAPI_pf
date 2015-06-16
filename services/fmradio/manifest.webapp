@@ -1,0 +1,26 @@
+{
+  "version": "0.1.0",
+  "name": "FMRadioService",
+  "description": "FMRadio Service",
+  "type": "certified",
+  "launch_path": "/WebAPI_pf/services/fmradio/index.html",
+  "icons": {
+    "16": "/WebAPI_pf/services/common/style/icons/icon.png",
+    "48": "/WebAPI_pf/services/common/style/icons/icon.png",
+    "60": "/WebAPI_pf/services/common/style/icons/icon.png",
+    "128": "/WebAPI_pf/services/common/style/icons/icon.png"
+  },
+  "connections": {
+    "https://fmradioservice.gaiamobile.org": {
+      "description": "Test SHIM IAC",
+      "rules": {}
+    }
+  },
+  "permissions": {
+    "fmradio":{}
+  },
+  "installs_allowed_from": [
+    "*"
+  ]
+}
+
