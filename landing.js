@@ -12,7 +12,9 @@
         }
       }
       var origin = servData[services[i]].origin || document.location.origin;
-      console.log('Installing app: ' + i + ': ' + services[i]);
+      //console.log('Installing app: ' + i + ': ' + services[i]);
+      console.log('Installing app: ' + i + ': ' + origin + relPath +
+                  services[i] + '/manifest.webappservices[i]');
       navigator.mozApps.install(origin + relPath + services[i] +
                                 '/manifest.webapp').
         then(installNextApp).catch(installNextApp);
